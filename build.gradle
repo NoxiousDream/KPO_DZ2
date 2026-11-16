@@ -22,6 +22,10 @@ application {
     mainClass.set('pos.Main')
 }
 
+tasks.named('run') {
+    standardInput = System.in
+}
+
 test {
     useJUnitPlatform()
     testLogging {

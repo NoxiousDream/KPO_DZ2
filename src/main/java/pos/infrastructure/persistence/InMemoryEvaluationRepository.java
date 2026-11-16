@@ -1,0 +1,56 @@
+package pos.infrastructure.persistence;
+
+import pos.domain.model.CriterionId;
+import pos.domain.model.Evaluation;
+import pos.domain.model.EvaluationId;
+import pos.domain.model.StudentId;
+import pos.domain.repository.EvaluationRepository;
+
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/** Адаптер порта EvaluationRepository. Upsert по id: исправление не плодит дубли. */
+public final class InMemoryEvaluationRepository implements EvaluationRepository {
+    private final Map<EvaluationId, Evaluation> byId = new LinkedHashMap<>();
+
+    @Override
+    public void save(Evaluation evaluation) {
+        byId.put(evaluation.id(), evaluation);
+    }
+
+    @Override
+    public Optional<Evaluation> findById(EvaluationId id) {
+        return Optional.ofNullable(byId.get(id));
+    }
+
+    @Override
+    public Optional<Evaluation> findByStudentAndCriterion(StudentId studentId, CriterionId criterionId) {
+        return byId.values().stream()
+                .filter(e -> e.studentId().equals(studentId) && e.criterionId().equals(criterionId))
+                .findFirst();
+    }
+
+    @Override
+    public List<Evaluation> findByStudent(StudentId studentId) {
+        return byId.values().stream()
+                .filter(e -> e.studentId().equals(studentId))
+                .sorted(Comparator.comparing(e -> e.criterionId().value()))
+                .toList();
+    }
+
+    @Override
+    public List<Evaluation> findAll() {
+        return byId.values().stream()
+                .sorted(Comparator.comparing((Evaluation e) -> e.studentId().value())
+                        .thenComparing(e -> e.criterionId().value()))
+                .toList();
+    }
+
+    @Override
+    public void deleteById(EvaluationId id) {
+        byId.remove(id);
+    }
+}
